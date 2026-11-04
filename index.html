@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>UTS Mobile - Belajar & Simulasi</title>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Main Application Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navbar Header (Desktop & Tablet) -->
+  <header class="navbar-top">
+    <div class="nav-container">
+      <div class="brand-wrapper" data-nav-target="beranda">
+        <div class="brand-icon">
+          <i class="fa-solid fa-mobile-screen-button"></i>
+        </div>
+        <div class="brand-info">
+          <h1>UTS MOBILE</h1>
+          <p>Belajar & Simulasi Pemrograman Mobile</p>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation Menu -->
+      <nav class="nav-links-desktop">
+        <button class="nav-link active" data-nav-target="beranda">
+          <i class="fa-solid fa-house"></i> Beranda
+        </button>
+        <button class="nav-link" data-nav-target="materi">
+          <i class="fa-solid fa-book-open"></i> Mode Materi
+        </button>
+        <button class="nav-link" data-nav-target="simulasi">
+          <i class="fa-solid fa-graduation-cap"></i> Simulasi UTS
+        </button>
+        <button class="nav-link" data-nav-target="pengaturan">
+          <i class="fa-solid fa-sliders"></i> Pengaturan
+        </button>
+      </nav>
+
+      <!-- Quick Actions -->
+      <div class="nav-actions">
+        <button class="btn-icon" id="btn-theme-toggle" onclick="App.toggleTheme()" title="Ubah Tema Gelap/Terang" aria-label="Toggle Theme">
+          <i class="fa-solid fa-sun" id="theme-toggle-icon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="main-wrapper">
+
+    <!-- ==================== VIEW 1: BERANDA ==================== -->
+    <section id="view-beranda" class="page-view active">
+      <!-- Hero Banner -->
+      <div class="hero-banner">
+        <span class="hero-tag">
+          <i class="fa-solid fa-rocket"></i> Edisi Semester Ganjil • React Native & Expo Go
+        </span>
+        <h2 class="hero-title">Platform Belajar & Uji Kompetensi UTS Pemrograman Mobile</h2>
+        <p class="hero-subtitle">
+          Kuasai materi perkuliahan Week 1 hingga Week 7 (React Native & Expo Go). Lengkap dengan analogi, diagram arsitektur, kode teruji, dan bank 180 soal simulasi interaktif.
+        </p>
+
+        <!-- Banner Lanjutkan Sesi Belum Selesai (Jika Ada) -->
+        <div id="resume-quiz-banner" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-gold); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <strong style="color: var(--accent-gold); display: block;"><i class="fa-solid fa-clock-rotate-left"></i> Sesi Simulasi Tertunda</strong>
+              <span id="resume-quiz-text" style="font-size: 0.88rem; color: var(--text-primary);">Anda memiliki sesi yang belum selesai.</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-gold" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="App.resumeQuizSession()">Lanjutkan Ujian</button>
+              <button class="btn-primary" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.5rem 0.85rem; font-size: 0.85rem;" onclick="App.discardSessionAndStartNew()">Batal</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Summary Stats -->
+        <div class="stats-summary-grid">
+          <div class="stat-box">
+            <i class="fa-solid fa-book-bookmark text-indigo" style="color: var(--brand-sky);"></i>
+            <div>
+              <div class="stat-val" id="dash-materi-percent">0%</div>
+              <div class="stat-lbl">Materi Dibaca</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <i class="fa-solid fa-award text-amber" style="color: var(--accent-gold);"></i>
+            <div>
+              <div class="stat-val" id="dash-best-score">0</div>
+              <div class="stat-lbl">Skor Tertinggi</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <i class="fa-solid fa-list-check text-emerald" style="color: var(--status-success);"></i>
+            <div>
+              <div class="stat-val" id="dash-sim-count">0 kali</div>
+              <div class="stat-lbl">Simulasi Diikuti</div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <i class="fa-solid fa-layer-group" style="color: #a855f7;"></i>
+            <div>
+              <div class="stat-val">180 Soal</div>
+              <div class="stat-lbl">Total Bank Soal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dua Mode Utama Selection Cards -->
+      <h3 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 1.25rem;">Pilih Jalur Belajar</h3>
+      <div class="mode-selection-grid">
+        <!-- Kartu Mode Materi -->
+        <div class="mode-card" onclick="App.navigateMateriWeek(1); document.querySelector('[data-nav-target=materi]').click();">
+          <div>
+            <div class="mode-header">
+              <div class="mode-badge-icon icon-materi">
+                <i class="fa-solid fa-book-open"></i>
+              </div>
+              <div class="mode-info">
+                <h3>Mode Materi Pembelajaran</h3>
+                <p>Pelajari konsep dari nol: Orientasi, React Native UI, Keamanan Storage, RESTful API, Token JWT, Reliable Offline, dan Device Sensors.</p>
+              </div>
+            </div>
+          </div>
+          <div class="mode-meta">
+            <span><i class="fa-solid fa-layer-group mr-1"></i> Week 1 s/d Week 7</span>
+            <span style="color: var(--brand-sky); font-weight: 700;">Buka Materi &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Kartu Mode Simulasi UTS -->
+        <div class="mode-card" onclick="document.querySelector('[data-nav-target=simulasi]').click();">
+          <div>
+            <div class="mode-header">
+              <div class="mode-badge-icon icon-simulasi">
+                <i class="fa-solid fa-stopwatch"></i>
+              </div>
+              <div class="mode-info">
+                <h3>Mode Simulasi UTS</h3>
+                <p>Uji kesiapan dengan paket 40 soal acak seimbang antar week, timer 45 detik/soal, feedback instan, analisis kelemahan, dan pembahasan detail.</p>
+              </div>
+            </div>
+          </div>
+          <div class="mode-meta">
+            <span><i class="fa-solid fa-clock mr-1"></i> Standar Ujian 40 Soal</span>
+            <span style="color: var(--accent-gold); font-weight: 700;">Mulai Simulasi &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: MODE MATERI ==================== -->
+    <section id="view-materi" class="page-view">
+      <div class="materi-layout">
+        <!-- Sidebar Daftar Isi / Table of Contents -->
+        <aside class="materi-sidebar">
+          <div class="sidebar-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="materi-search-input" placeholder="Cari konsep materi..." aria-label="Cari materi">
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Daftar Pekan (TOC)</span>
+            <span style="font-size: 0.78rem; color: var(--brand-sky); font-weight: 700;">Week 1-7</span>
+          </div>
+
+          <div id="materi-toc-list">
+            <!-- Dynamic TOC List via JS -->
+          </div>
+        </aside>
+
+        <!-- Main Article Content Area -->
+        <article class="materi-content-area">
+          <!-- Toolbar Atas (Font Size Adjuster) -->
+          <div class="materi-toolbar">
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+              <i class="fa-solid fa-graduation-cap text-indigo"></i> Panduan Lengkap Sesuai Slide Perkuliahan
+            </div>
+            <div class="font-size-adjuster">
+              <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 0.35rem;">Ukuran Teks:</span>
+              <button class="btn-font" onclick="App.adjustFontSize(-1)" title="Perkecil Font">A-</button>
+              <span id="font-size-display" style="font-size: 0.8rem; font-weight: 700; padding: 0 0.2rem;">16px</span>
+              <button class="btn-font" onclick="App.adjustFontSize(1)" title="Perbesar Font">A+</button>
+            </div>
+          </div>
+
+          <!-- Dynamic Materi Article Rendered via JS -->
+          <div id="materi-article-render">
+            <!-- Content will be injected by renderMateriContent() -->
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: MODE SIMULASI UTS ==================== -->
+    <section id="view-simulasi" class="page-view">
+      <div class="simulasi-card">
+
+        <!-- 3A. MENU PEMILIHAN MODE SIMULASI -->
+        <div id="simulasi-menu-card">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--accent-gold-light); color: var(--accent-gold); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem auto;">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <h2 style="font-size: 1.85rem; font-weight: 800; margin-bottom: 0.5rem;">Simulasi UTS Pemrograman Mobile</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; max-width: 600px; margin: 0 auto;">
+              Pilih mode latihan sesuai target belajar Anda. Setiap percobaan menyajikan soal teracak yang seimbang antar Week 1 sampai Week 7.
+            </p>
+          </div>
+
+          <div class="grid-2-col" style="gap: 1.25rem; margin-bottom: 2rem;">
+            <!-- Mode 1: Simulasi Penuh 40 Soal (Timer) -->
+            <div class="card-feature" style="border: 2px solid var(--accent-gold); cursor: pointer;" onclick="App.startSimulation('full_uts')">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <span class="badge-warning"><i class="fa-solid fa-fire"></i> Standar Ujian Asli</span>
+                <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent-gold);"><i class="fa-regular fa-clock"></i> 45s / Soal</span>
+              </div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem;">Simulasi UTS Penuh (40 Soal)</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                40 butir soal acak berimbang dari Week 1 sampai 7 dengan batas waktu timer ketat layaknya suasana ujian sebenarnya.
+              </p>
+              <button class="btn-gold" style="width: 100%;"><i class="fa-solid fa-play"></i> Mulai Ujian Penuh</button>
+            </div>
+
+            <!-- Mode 2: Mode Santai Tanpa Timer -->
+            <div class="card-feature" style="cursor: pointer;" onclick="App.startSimulation('relaxed')">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <span class="badge-info"><i class="fa-solid fa-mug-hot"></i> Tanpa Tekanan Waktu</span>
+                <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--brand-sky);">Santai</span>
+              </div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem;">Mode Santai (Tanpa Timer)</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                Latihan 40 soal tanpa timer hitung mundur. Cocok untuk belajar santai sambil membaca pembahasan setiap butir soal.
+              </p>
+              <button class="btn-primary" style="width: 100%;"><i class="fa-solid fa-book-open-reader"></i> Mulai Mode Santai</button>
+            </div>
+
+            <!-- Mode 3: Latihan Khusus Soal Pernah Salah -->
+            <div class="card-feature" style="cursor: pointer;" onclick="App.startSimulation('wrong_practice')">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <span class="badge-danger"><i class="fa-solid fa-rotate-left"></i> Evaluasi Kelemahan</span>
+                <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--status-danger);">Review</span>
+              </div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem;">Latihan Soal Pernah Salah</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                Sistem secara otomatis mengumpulkan butir-butir soal yang pernah Anda jawab keliru di sesi sebelumnya untuk diulang kembali.
+              </p>
+              <button class="btn-primary" style="width: 100%; background: var(--bg-card); border: 1px solid var(--status-danger); color: var(--status-danger);"><i class="fa-solid fa-wrench"></i> Ulangi Soal Salah</button>
+            </div>
+
+            <!-- Mode 4: Latihan Khusus Per Week -->
+            <div class="card-feature">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                <span class="badge-success"><i class="fa-solid fa-filter"></i> Topik Terarah</span>
+                <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--status-success);">Spesifik</span>
+              </div>
+              <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.4rem;">Latihan Khusus Per Week</h4>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                Fokuskan pemahaman pada pekan perkuliahan tertentu:
+              </p>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem;">
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 1)">W1</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 2)">W2</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 3)">W3</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 4)">W4</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 5)">W5</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 6)">W6</button>
+                <button class="btn-primary" style="padding: 0.4rem; font-size: 0.75rem;" onclick="App.startSimulation('week_practice', 7)">W7</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3B. CARD SOAL AKTIF (PENGERJAAN KUIS) -->
+        <div id="simulasi-active-card" class="hidden">
+          <!-- Top Bar: Timer, Nomor Soal, Bookmark -->
+          <div class="quiz-top-bar">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span id="quiz-question-number" style="font-weight: 800; font-size: 1.1rem;">Soal 1 dari 40</span>
+              <span id="quiz-topic-tag" class="badge-info">Week 1 • Kontrak Perkuliahan</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div id="quiz-timer-display" class="timer-pill">
+                <i class="fa-solid fa-stopwatch"></i> <span>30:00</span>
+              </div>
+              <button id="btn-quiz-bookmark" onclick="App.toggleCurrentBookmark()" class="btn-primary" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                <i class="fa-regular fa-bookmark"></i> Tandai Ragu
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-container">
+            <div id="quiz-progress-bar" class="progress-fill" style="width: 2.5%;"></div>
+          </div>
+
+          <!-- Teks Pertanyaan -->
+          <div id="quiz-question-text" class="question-text">
+            Pertanyaan kuis akan dimuat di sini...
+          </div>
+
+          <!-- Opsi Jawaban Grid (A - E) -->
+          <div id="quiz-options-container" class="options-list">
+            <!-- Dynamic Options via JS -->
+          </div>
+
+          <!-- Kotak Pembahasan Instan (Aktif setelah dijawab) -->
+          <div id="quiz-explanation-box" class="explanation-card"></div>
+
+          <!-- Quick Navigation Grid (Nomor 1-40) -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+              <span>Lompat ke Nomor:</span>
+              <span><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand-blue); margin-right: 4px;"></span>Terjawab</span>
+            </div>
+            <div id="quiz-quick-nav-grid" class="quick-nav-grid"></div>
+          </div>
+
+          <!-- Bottom Actions: Prev / Next Button -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+            <button id="btn-quiz-prev" onclick="App.navigateQuiz(-1)" class="btn-primary" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+              <i class="fa-solid fa-arrow-left mr-1"></i> Sebelumnya
+            </button>
+            <button id="btn-quiz-next" onclick="App.navigateQuiz(1)" class="btn-gold">
+              Selanjutnya <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3C. CARD HASIL SIMULASI (RESULT VIEW) -->
+        <div id="simulasi-result-card" class="hidden">
+          <div class="result-banner">
+            <div class="score-circle">
+              <span id="result-final-score" class="score-number">85</span>
+              <span class="score-label">Skor Akhir</span>
+            </div>
+
+            <h3 style="font-size: 1.65rem; font-weight: 800; margin-bottom: 0.35rem;">Simulasi UTS Selesai!</h3>
+            <p id="result-score-detail" style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2rem;">
+              Menjawab 34 benar dari 40 soal.
+            </p>
+
+            <!-- Rincian Capaian Nilai per Week -->
+            <div style="text-align: left; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem;">
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-chart-simple text-indigo"></i> Rincian Capaian per Week</h4>
+              <div id="result-week-breakdown">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Daftar Soal yang Dijawab Salah Beserta Pembahasan -->
+            <div style="text-align: left; margin-bottom: 2.5rem;">
+              <h4 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 1rem;"><i class="fa-solid fa-triangle-exclamation text-danger"></i> Evaluasi Butir Soal Salah</h4>
+              <div id="result-wrong-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Tombol Tindakan Lanjutan -->
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+              <button onclick="App.startSimulation('wrong_practice')" class="btn-primary" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Ulangi Khusus Soal Salah
+              </button>
+              <button onclick="App.startSimulation('full_uts')" class="btn-gold">
+                <i class="fa-solid fa-arrows-rotate mr-1"></i> Mulai Simulasi Baru
+              </button>
+              <button onclick="document.querySelector('[data-nav-target=materi]').click()" class="btn-primary">
+                <i class="fa-solid fa-book-open mr-1"></i> Buka Materi Terkait
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: PENGATURAN & RIWAYAT ==================== -->
+    <section id="view-pengaturan" class="page-view">
+      <div style="max-width: 720px; margin: 0 auto;">
+        <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem;">Pengaturan & Preferensi</h2>
+
+        <!-- Preferensi Soal Bank Lama -->
+        <div class="card-feature mb-4" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div>
+            <h4 style="font-size: 1.05rem; font-weight: 700;">Sertakan Soal Android Native (Bank Lama)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              Menambahkan 40 butir soal bank lama bertema Kotlin, Layout XML, dan AndroidManifest ke dalam bank soal simulasi. <em>(Default: MATI)</em>
+            </p>
+          </div>
+          <div>
+            <input type="checkbox" id="setting-bank-lama" style="width: 22px; height: 22px; accent-color: var(--brand-blue); cursor: pointer;" onchange="App.updateSetting('includeBankLama', this.checked)">
+          </div>
+        </div>
+
+        <!-- Pengaturan Durasi Timer -->
+        <div class="card-feature mb-4" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div>
+            <h4 style="font-size: 1.05rem; font-weight: 700;">Durasi Waktu per Soal</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              Batas waktu countdown timer per butir soal pada mode Simulasi UTS penuh.
+            </p>
+          </div>
+          <div>
+            <select id="setting-timer-select" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 0.75rem; border-radius: 8px;" onchange="App.updateSetting('timerPerQuestion', parseInt(this.value, 10))">
+              <option value="30">30 Detik</option>
+              <option value="45" selected>45 Detik (Default)</option>
+              <option value="60">60 Detik</option>
+              <option value="90">90 Detik</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Preferensi Tema -->
+        <div class="card-feature mb-4" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div>
+            <h4 style="font-size: 1.05rem; font-weight: 700;">Tema Tampilan</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              Pilihan palet antarmuka gelap atau terang.
+            </p>
+          </div>
+          <div>
+            <select id="setting-theme-select" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 0.75rem; border-radius: 8px;" onchange="App.updateSetting('theme', this.value)">
+              <option value="dark">Mode Gelap (Dark Navy)</option>
+              <option value="light">Mode Terang (Light Clean)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Riwayat 10 Percobaan Terakhir -->
+        <div class="card-feature mb-4">
+          <h4 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;"><i class="fa-solid fa-clock-rotate-left text-amber"></i> Riwayat 10 Simulasi Terakhir</h4>
+          <div id="settings-history-list">
+            <!-- Dynamic History List via JS -->
+          </div>
+        </div>
+
+        <!-- Reset Semua Data -->
+        <div class="card-feature" style="border: 1px solid var(--status-danger);">
+          <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--status-danger);"><i class="fa-solid fa-triangle-exclamation"></i> Zona Berbahaya</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.35rem 0 1rem 0;">
+            Menghapus seluruh rekam jejak progres materi, riwayat nilai, statistik salah, dan mengembalikan setelan ke bawaan awal.
+          </p>
+          <button onclick="App.resetAllData()" class="btn-primary" style="background: var(--status-danger); border: none; font-size: 0.85rem;">
+            <i class="fa-solid fa-trash-can mr-1"></i> Reset Semua Data Aplikasi
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item active" data-nav-target="beranda">
+      <i class="fa-solid fa-house"></i>
+      <span>Beranda</span>
+    </button>
+    <button class="bottom-nav-item" data-nav-target="materi">
+      <i class="fa-solid fa-book-open"></i>
+      <span>Materi</span>
+    </button>
+    <button class="bottom-nav-item" data-nav-target="simulasi">
+      <i class="fa-solid fa-graduation-cap"></i>
+      <span>Simulasi</span>
+    </button>
+    <button class="bottom-nav-item" data-nav-target="pengaturan">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Setelan</span>
+    </button>
+  </nav>
+
+  <!-- Modal Dialog Lanjutkan Sesi Tertunda -->
+  <div id="modal-resume-session" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent-gold-light); color: var(--accent-gold); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <h3 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 0.5rem;">Lanjutkan Simulasi?</h3>
+      <p id="modal-resume-desc" style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+        Ditemukan sesi pengerjaan ujian aktif yang belum selesai.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn-primary" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.85rem;" onclick="App.discardSessionAndStartNew()">
+          Mulai Baru
+        </button>
+        <button class="btn-gold" style="font-size: 0.85rem;" onclick="App.resumeQuizSession()">
+          Lanjutkan Ujian
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Back to Top Button -->
+  <button id="btn-back-to-top" class="btn-back-to-top" onclick="App.scrollToTop()" title="Kembali ke atas" aria-label="Back to Top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <!-- Confetti Canvas for Score >= 80% -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Data & Application Logic Scripts -->
+  <script src="data/materi.js"></script>
+  <script src="data/soal.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
