@@ -34,3 +34,4 @@ Aplikasi ini berbasis client-side murni tanpa build step:
    git clone https://github.com/FarrelAnshari/Simulasi-UTS-Mobile.git
    ```
 2. Buka berkas `index.html` langsung di browser favorit Anda (Chrome, Edge, Firefox, atau Safari).
+

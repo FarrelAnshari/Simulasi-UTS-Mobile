@@ -34,6 +34,7 @@
   const App = {
     materi: window.MATERI_DATA || [],
     bankSoal: window.BANK_SOAL || [],
+    bankSoalC: window.BANK_SOAL_C || [],
     settings: getStorage(STORAGE_KEYS.SETTINGS, {
       timerPerQuestion: 45, // Default 45 detik (memperbaiki bug lama 00:30)
       theme: 'dark',
@@ -60,7 +61,8 @@
   // Validasi Ketersediaan Data Saat Inisialisasi
   function validateData() {
     console.log('Materi terpasang:', App.materi.length, 'pekan.');
-    console.log('Bank Soal terpasang:', App.bankSoal.length, 'butir.');
+    console.log('Bank Soal Utama terpasang:', App.bankSoal.length, 'butir.');
+    console.log('Bank Soal UTS C terpasang:', App.bankSoalC.length, 'butir.');
     if (!App.materi.length) console.error('Peringatan: MATERI_DATA kosong!');
     if (!App.bankSoal.length) console.error('Peringatan: BANK_SOAL kosong!');
   }
@@ -544,6 +546,75 @@
     }
   }
 
+  function startSimulationC(mode = 'full_uts') {
+    const rawQuestions = window.BANK_SOAL_C || App.bankSoalC || [];
+    if (!rawQuestions || rawQuestions.length === 0) {
+      alert('Bank Soal UTS Pemrograman Mobile C belum dimuat. Silakan muat ulang halaman.');
+      return;
+    }
+
+    const selectedQuestions = rawQuestions.map(q => ({
+      ...q,
+      userAnswer: null,
+      userAnswerText: '',
+      isBookmarked: false
+    }));
+
+    const isTimerActive = mode === 'full_uts';
+    const timeLimitSec = 60 * 60; // 60 Menit
+
+    App.quizSession = {
+      package: 'UTS Pemrograman Mobile C',
+      mode: mode,
+      targetWeek: null,
+      questions: selectedQuestions,
+      currentIndex: 0,
+      timeLeft: isTimerActive ? timeLimitSec : 0,
+      isTimerActive: isTimerActive,
+      isFinished: false,
+      startTime: Date.now()
+    };
+
+    setStorage(STORAGE_KEYS.SESSION, App.quizSession);
+
+    switchView('simulasi');
+    showQuizActiveCard();
+    renderCurrentQuestion();
+
+    if (isTimerActive) {
+      startQuizTimer();
+    } else {
+      stopQuizTimer();
+      const timerDisplay = document.getElementById('quiz-timer-display');
+      if (timerDisplay) {
+        timerDisplay.innerText = 'Mode Santai';
+        timerDisplay.classList.remove('timer-pulse');
+      }
+    }
+  }
+
+  function saveEssayAnswer() {
+    const session = App.quizSession;
+    if (!session || session.isFinished) return;
+
+    const q = session.questions[session.currentIndex];
+    if (q.tipe !== 'esai') return;
+
+    const inputEl = document.getElementById('quiz-essay-input');
+    const textVal = inputEl ? inputEl.value.trim() : '';
+
+    if (!textVal) {
+      alert('Silakan tuliskan jawaban penjelasan Anda terlebih dahulu pada kolom yang disediakan.');
+      return;
+    }
+
+    q.userAnswerText = textVal;
+    q.userAnswer = true;
+
+    setStorage(STORAGE_KEYS.SESSION, session);
+    renderCurrentQuestion();
+  }
+
   function showQuizActiveCard() {
     document.getElementById('simulasi-menu-card')?.classList.add('hidden');
     document.getElementById('simulasi-result-card')?.classList.add('hidden');
@@ -570,8 +641,13 @@
 
     const elTopic = document.getElementById('quiz-topic-tag');
     if (elTopic) {
-      const weekLabel = q.week ? `Week ${q.week}` : 'Native';
-      elTopic.innerText = `${weekLabel} • ${q.topik}`;
+      if (session.package === 'UTS Pemrograman Mobile C' || q.paket === 'C') {
+        const typeLabel = q.tipe === 'esai' ? 'ESAI' : 'PG';
+        elTopic.innerText = `Paket C • ${q.topik || 'Pemrograman Mobile'} (${typeLabel})`;
+      } else {
+        const weekLabel = q.week ? `Week ${q.week}` : 'Native';
+        elTopic.innerText = `${weekLabel} • ${q.topik}`;
+      }
     }
 
     // Progress Bar
@@ -583,62 +659,114 @@
     const elText = document.getElementById('quiz-question-text');
     if (elText) elText.innerHTML = formatCodeSnippets(q.pertanyaan);
 
-    // Render Opsi Jawaban
+    // Render Opsi Jawaban (atau Textarea jika tipe Esai)
     const optionsContainer = document.getElementById('quiz-options-container');
-    if (optionsContainer) {
-      optionsContainer.innerHTML = '';
-
-      const isAnswered = q.userAnswer !== null;
-
-      q.options.forEach((optText, optIdx) => {
-        const optBtn = document.createElement('div');
-        optBtn.className = 'option-item';
-        if (isAnswered) optBtn.classList.add('locked');
-
-        // Huruf A, B, C, D, E
-        const char = String.fromCharCode(65 + optIdx);
-
-        // Tandai status jika sudah dijawab
-        if (isAnswered) {
-          if (optIdx === q.correct) {
-            optBtn.classList.add('correct');
-          } else if (optIdx === q.userAnswer) {
-            optBtn.classList.add('wrong');
-          }
-        }
-
-        optBtn.innerHTML = `
-          <div class="option-badge">${char}</div>
-          <div style="flex: 1;">${formatCodeSnippets(optText)}</div>
-        `;
-
-        if (!isAnswered) {
-          optBtn.onclick = () => selectQuizAnswer(optIdx);
-        }
-
-        optionsContainer.appendChild(optBtn);
-      });
-    }
-
-    // Kotak Pembahasan (Tampil instan jika mode santai/latihan, atau saat review)
     const expBox = document.getElementById('quiz-explanation-box');
-    if (expBox) {
-      if (q.userAnswer !== null) {
-        expBox.classList.add('active');
-        const isUserCorrect = q.userAnswer === q.correct;
-        expBox.style.backgroundColor = isUserCorrect ? 'var(--status-success-light)' : 'var(--status-danger-light)';
-        expBox.style.borderColor = isUserCorrect ? 'var(--status-success)' : 'var(--status-danger)';
-        expBox.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <i class="fa-solid ${isUserCorrect ? 'fa-circle-check text-success' : 'fa-circle-xmark text-danger'}"></i>
-            <strong style="color: ${isUserCorrect ? 'var(--status-success)' : 'var(--status-danger)'};">
-              ${isUserCorrect ? 'Jawaban Anda Tepat!' : 'Jawaban Anda Kurang Tepat!'}
-            </strong>
+
+    if (q.tipe === 'esai') {
+      const isSaved = q.userAnswer !== null;
+      if (optionsContainer) {
+        optionsContainer.innerHTML = `
+          <div class="essay-box">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">
+              <i class="fa-solid fa-pen-fancy text-primary mr-1"></i> Tuliskan Jawaban Esai Anda:
+            </label>
+            <textarea id="quiz-essay-input" class="essay-textarea" placeholder="Ketik jawaban penjelasan Anda di sini secara lengkap..." ${isSaved ? 'disabled' : ''}>${q.userAnswerText || ''}</textarea>
+            ${!isSaved ? `
+              <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary btn-sm" onclick="App.saveEssayAnswer()">
+                  <i class="fa-solid fa-check mr-1"></i> Simpan & Tampilkan Pembahasan Detail
+                </button>
+              </div>
+            ` : `
+              <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--status-success); font-weight: 600;">
+                <i class="fa-solid fa-circle-check"></i> Jawaban telah tersimpan pada sesi ujian.
+              </div>
+            `}
           </div>
-          <p class="mb-0 text-sm">${q.pembahasan}</p>
         `;
-      } else {
-        expBox.classList.remove('active');
+      }
+
+      if (expBox) {
+        if (isSaved) {
+          expBox.classList.add('active');
+          expBox.style.backgroundColor = 'var(--bg-card)';
+          expBox.style.borderColor = 'var(--accent-gold)';
+          expBox.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <i class="fa-solid fa-lightbulb text-amber"></i>
+              <strong style="color: var(--accent-gold);">
+                Kunci Jawaban Acuan & Pembahasan Detail
+              </strong>
+            </div>
+            <div class="essay-reference-card">
+              <div class="essay-reference-title">
+                <i class="fa-solid fa-key text-success mr-1"></i> Kunci Jawaban Acuan:
+              </div>
+              <div style="font-size: 0.9rem; line-height: 1.5; color: var(--text-primary);">
+                ${formatCodeSnippets(q.kunciJawaban || '')}
+              </div>
+            </div>
+            <div style="margin-top: 0.75rem;">
+              <strong class="text-xs uppercase text-secondary" style="letter-spacing: 0.05em;">Pembahasan Mendalam:</strong>
+              <p class="mb-0 text-sm mt-1" style="color: var(--text-secondary); line-height: 1.6;">${formatCodeSnippets(q.pembahasan)}</p>
+            </div>
+          `;
+        } else {
+          expBox.classList.remove('active');
+        }
+      }
+    } else {
+      if (optionsContainer) {
+        optionsContainer.innerHTML = '';
+        const isAnswered = q.userAnswer !== null;
+
+        (q.options || []).forEach((optText, optIdx) => {
+          const optBtn = document.createElement('div');
+          optBtn.className = 'option-item';
+          if (isAnswered) optBtn.classList.add('locked');
+
+          const char = String.fromCharCode(65 + optIdx);
+
+          if (isAnswered) {
+            if (optIdx === q.correct) {
+              optBtn.classList.add('correct');
+            } else if (optIdx === q.userAnswer) {
+              optBtn.classList.add('wrong');
+            }
+          }
+
+          optBtn.innerHTML = `
+            <div class="option-badge">${char}</div>
+            <div style="flex: 1;">${formatCodeSnippets(optText)}</div>
+          `;
+
+          if (!isAnswered) {
+            optBtn.onclick = () => selectQuizAnswer(optIdx);
+          }
+
+          optionsContainer.appendChild(optBtn);
+        });
+      }
+
+      if (expBox) {
+        if (q.userAnswer !== null) {
+          expBox.classList.add('active');
+          const isUserCorrect = q.userAnswer === q.correct;
+          expBox.style.backgroundColor = isUserCorrect ? 'var(--status-success-light)' : 'var(--status-danger-light)';
+          expBox.style.borderColor = isUserCorrect ? 'var(--status-success)' : 'var(--status-danger)';
+          expBox.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <i class="fa-solid ${isUserCorrect ? 'fa-circle-check text-success' : 'fa-circle-xmark text-danger'}"></i>
+              <strong style="color: ${isUserCorrect ? 'var(--status-success)' : 'var(--status-danger)'};">
+                ${isUserCorrect ? 'Jawaban Anda Tepat!' : 'Jawaban Anda Kurang Tepat!'}
+              </strong>
+            </div>
+            <p class="mb-0 text-sm">${q.pembahasan}</p>
+          `;
+        } else {
+          expBox.classList.remove('active');
+        }
       }
     }
 
@@ -676,6 +804,7 @@
     if (!session || session.isFinished) return;
 
     const q = session.questions[session.currentIndex];
+    if (q.tipe === 'esai') return;
     if (q.userAnswer !== null) return; // Kunci: Soal yang sudah dijawab tidak bisa diubah lagi!
 
     q.userAnswer = optIndex;
@@ -809,21 +938,31 @@
 
     // Hitung Skor
     let correctCount = 0;
+    let pgTotal = 0;
+    let essayAnswered = 0;
+    let essayTotal = 0;
     const weekScores = { 1: { c: 0, t: 0 }, 2: { c: 0, t: 0 }, 3: { c: 0, t: 0 }, 4: { c: 0, t: 0 }, 5: { c: 0, t: 0 }, 6: { c: 0, t: 0 }, 7: { c: 0, t: 0 }, 0: { c: 0, t: 0 } };
 
     session.questions.forEach(q => {
-      const wKey = q.week || 0;
-      if (!weekScores[wKey]) weekScores[wKey] = { c: 0, t: 0 };
-      weekScores[wKey].t += 1;
+      if (q.tipe === 'esai') {
+        essayTotal += 1;
+        if (q.userAnswer !== null) essayAnswered += 1;
+      } else {
+        pgTotal += 1;
+        const wKey = q.week || 0;
+        if (!weekScores[wKey]) weekScores[wKey] = { c: 0, t: 0 };
+        weekScores[wKey].t += 1;
 
-      if (q.userAnswer === q.correct) {
-        correctCount += 1;
-        weekScores[wKey].c += 1;
+        if (q.userAnswer === q.correct) {
+          correctCount += 1;
+          weekScores[wKey].c += 1;
+        }
       }
     });
 
     const totalQuestions = session.questions.length;
-    const finalScore = Math.round((correctCount / totalQuestions) * 100);
+    // Jika ada soal PG, skor dihitung dari PG (atau total jika murni PG)
+    const finalScore = pgTotal > 0 ? Math.round((correctCount / pgTotal) * 100) : 100;
     const durationSeconds = Math.round((Date.now() - session.startTime) / 1000);
 
     // Simpan ke Riwayat (Maks 10)
@@ -831,8 +970,12 @@
       id: 'hist_' + Date.now(),
       date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       mode: session.mode,
+      package: session.package || 'Reguler',
       score: finalScore,
       correct: correctCount,
+      pgTotal: pgTotal,
+      essayAnswered: essayAnswered,
+      essayTotal: essayTotal,
       total: totalQuestions,
       duration: durationSeconds,
       weekScores: weekScores
@@ -857,7 +1000,11 @@
 
     const elDetail = document.getElementById('result-score-detail');
     if (elDetail) {
-      elDetail.innerText = `Menjawab ${hist.correct} benar dari ${hist.total} butir soal (${Math.floor(hist.duration / 60)}m ${hist.duration % 60}s).`;
+      if (hist.package === 'UTS Pemrograman Mobile C') {
+        elDetail.innerText = `Menjawab ${hist.correct} benar dari ${hist.pgTotal} PG, serta ${hist.essayAnswered} dari ${hist.essayTotal} Esai terselesaikan (${Math.floor(hist.duration / 60)}m ${hist.duration % 60}s).`;
+      } else {
+        elDetail.innerText = `Menjawab ${hist.correct} benar dari ${hist.total} butir soal (${Math.floor(hist.duration / 60)}m ${hist.duration % 60}s).`;
+      }
     }
 
     // Pemicu Confetti jika skor >= 80%
@@ -889,36 +1036,68 @@
       }
     }
 
-    // Render Daftar Soal Salah untuk Pembahasan
+    // Render Pembahasan & Evaluasi Soal
     const wrongContainer = document.getElementById('result-wrong-list');
     if (wrongContainer) {
       wrongContainer.innerHTML = '';
-      const wrongList = session.questions.filter(q => q.userAnswer !== q.correct);
+      
+      const isPaketC = session.package === 'UTS Pemrograman Mobile C';
+      // Untuk paket C, tampilkan soal PG yang salah serta seluruh soal Esai agar mahasiswa bisa mereview pembahasan lengkapnya
+      const reviewList = session.questions.filter(q => {
+        if (q.tipe === 'esai') return true;
+        return q.userAnswer !== q.correct;
+      });
 
-      if (wrongList.length === 0) {
-        wrongContainer.innerHTML = '<div class="p-4 text-center text-success"><i class="fa-solid fa-trophy text-3xl mb-2"></i><br/>Luar Biasa! Seluruh butir soal berhasil Anda jawab dengan benar!</div>';
+      if (reviewList.length === 0) {
+        wrongContainer.innerHTML = '<div class="p-4 text-center text-success"><i class="fa-solid fa-trophy text-3xl mb-2"></i><br/>Luar Biasa! Seluruh butir soal berhasil Anda jawab dengan sempurna!</div>';
       } else {
-        wrongList.forEach((q, idx) => {
+        reviewList.forEach((q, idx) => {
           const item = document.createElement('div');
           item.className = 'p-3 rounded-xl mb-3';
           item.style.backgroundColor = 'var(--bg-secondary)';
           item.style.border = '1px solid var(--border-color)';
           
-          const userChoiceChar = q.userAnswer !== null ? String.fromCharCode(65 + q.userAnswer) : 'Tidak dijawab';
-          const correctChar = String.fromCharCode(65 + q.correct);
+          if (q.tipe === 'esai') {
+            const hasAnswered = !!q.userAnswerText;
+            item.innerHTML = `
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span class="badge-primary">Soal Esai (No. ${q.nomor || idx + 1})</span>
+                <span class="${hasAnswered ? 'text-success' : 'text-danger'}" style="font-size: 0.8rem; font-weight: 600;">
+                  ${hasAnswered ? '<i class="fa-solid fa-check"></i> Terjawab' : '<i class="fa-solid fa-xmark"></i> Belum dijawab'}
+                </span>
+              </div>
+              <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                ${formatCodeSnippets(q.pertanyaan)}
+              </div>
+              ${hasAnswered ? `
+                <div class="p-2 rounded mb-2 text-xs" style="background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--primary-color);">
+                  <strong>Jawaban Anda:</strong> ${formatCodeSnippets(q.userAnswerText)}
+                </div>
+              ` : ''}
+              <div class="p-2 rounded mb-2 text-xs" style="background: var(--bg-card); color: var(--text-primary); border-left: 3px solid var(--status-success);">
+                <strong>Kunci Jawaban Acuan:</strong> ${formatCodeSnippets(q.kunciJawaban || '')}
+              </div>
+              <div class="p-2 rounded text-xs" style="background: var(--bg-card); color: var(--text-secondary); border-left: 3px solid var(--accent-gold);">
+                <strong>Pembahasan:</strong> ${formatCodeSnippets(q.pembahasan)}
+              </div>
+            `;
+          } else {
+            const userChoiceChar = q.userAnswer !== null ? String.fromCharCode(65 + q.userAnswer) : 'Tidak dijawab';
+            const correctChar = String.fromCharCode(65 + q.correct);
 
-          item.innerHTML = `
-            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-primary);">
-              ${idx + 1}. ${formatCodeSnippets(q.pertanyaan)}
-            </div>
-            <div style="font-size: 0.85rem; margin-bottom: 0.4rem;">
-              <span class="badge-danger mr-2">Jawaban Anda: ${userChoiceChar}</span>
-              <span class="badge-success">Kunci Benar: ${correctChar}</span>
-            </div>
-            <div class="p-2 rounded mt-2 text-xs" style="background: var(--bg-card); color: var(--text-secondary); border-left: 3px solid var(--accent-gold);">
-              <strong>Pembahasan:</strong> ${q.pembahasan}
-            </div>
-          `;
+            item.innerHTML = `
+              <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-primary);">
+                ${idx + 1}. ${formatCodeSnippets(q.pertanyaan)}
+              </div>
+              <div style="font-size: 0.85rem; margin-bottom: 0.4rem;">
+                <span class="badge-danger mr-2">Jawaban Anda: ${userChoiceChar}</span>
+                <span class="badge-success">Kunci Benar: ${correctChar}</span>
+              </div>
+              <div class="p-2 rounded mt-2 text-xs" style="background: var(--bg-card); color: var(--text-secondary); border-left: 3px solid var(--accent-gold);">
+                <strong>Pembahasan:</strong> ${q.pembahasan}
+              </div>
+            `;
+          }
           wrongContainer.appendChild(item);
         });
       }
@@ -1156,6 +1335,8 @@
       startSimulation('week_practice', weekNum);
     },
     startSimulation: startSimulation,
+    startSimulationC: startSimulationC,
+    saveEssayAnswer: saveEssayAnswer,
     selectQuizAnswer: selectQuizAnswer,
     toggleCurrentBookmark: toggleCurrentBookmark,
     navigateQuiz: navigateQuiz,
